@@ -2228,29 +2228,53 @@ body{
     return "Something went wrong: " + (e && e.message ? e.message : e);
   }
 
-  async function pushToCloud(force) {
-    if (!cloudReady || !cloudUser) return;
-    const now = Date.now();
-    if (!force && now - lastCloudPush < 8000) return; // throttle
-    lastCloudPush = now;
-    try {
-      await cloudDb.collection("saves").doc(cloudUser.uid).set({
-        state: JSON.stringify(state),
-        updatedAt: now,
-        leaderboard: {
-          nickname: ((state.profile && state.profile.nickname) || "Anonymous").trim().slice(0, 20) || "Anonymous",
-          prestige: Number(state.prestige) || 0,
-          totalEarned: Number(state.stats && state.stats.totalEarned) || 0,
-          totalGemsEarned: Number(state.stats && state.stats.totalGemsEarned) || 0
-        }
-      });
-      const el = document.getElementById("cloudLastSync");
-      if (el) el.textContent = new Date(now).toLocaleTimeString("cs-CZ");
-    } catch (e) {
-      console.warn("Cloud push selhal:", e);
-    }
-  }
-
+async function pushToCloud(force) { 
+  if (!cloudReady || !cloudUser) return; 
+ 
+  const now = Date.now(); 
+ 
+  if (!force && now - lastCloudPush < 8000) return; 
+ 
+  lastCloudPush = now; 
+ 
+  try { 
+    const leaderboardData = { 
+      nickname: ((state.profile && state.profile.nickname) || "Anonymous") 
+        .trim() 
+        .slice(0, 20) || "Anonymous", 
+ 
+      prestige: Number(state.prestige) || 0, 
+ 
+      totalEarned: 
+        Number(state.stats && state.stats.totalEarned) || 0, 
+ 
+      totalGemsEarned: 
+        Number(state.stats && state.stats.totalGemsEarned) || 0, 
+ 
+      updatedAt: now 
+    }; 
+ 
+    // Save the complete game save 
+    await cloudDb.collection("saves").doc(cloudUser.uid).set({ 
+      state: JSON.stringify(state), 
+      updatedAt: now, 
+      leaderboard: leaderboardData 
+    }); 
+ 
+    // Save public leaderboard data separately 
+    await cloudDb.collection("leaderboards").doc(cloudUser.uid).set( 
+      leaderboardData 
+    ); 
+ 
+    const el = document.getElementById("cloudLastSync"); 
+    if (el) { 
+      el.textContent = new Date(now).toLocaleTimeString("cs-CZ"); 
+    } 
+ 
+  } catch (e) { 
+    console.warn("Cloud push selhal:", e); 
+  } 
+}
   async function pullFromCloud() {
     if (!cloudReady || !cloudUser) return;
     try {
@@ -2365,44 +2389,83 @@ body{
     return html + `</tbody></table>`;
   }
 
-  async function loadLeaderboards() {
-    const list = document.getElementById("leaderboardList");
-    const status = document.getElementById("leaderboardStatus");
-    if (!list || !status) return;
-    if (!cloudReady || !cloudUser) {
-      list.innerHTML = `<div class="leaderboard-status">🔒 Sign in to view the global leaderboards.</div>`;
-      status.textContent = "";
-      return;
-    }
-    status.textContent = "Loading…";
-    try {
-      const snap = await cloudDb.collection("saves").get();
-      const rows = [];
-      snap.forEach(doc => {
-        const data = doc.data() || {};
-        if (data.leaderboard) rows.push({uid: doc.id, leaderboard: data.leaderboard});
-      });
-      const top = (field) => rows.slice().sort((a,b) => (Number(b.leaderboard[field])||0) - (Number(a.leaderboard[field])||0)).slice(0,10);
-      list.innerHTML = [
-        renderLeaderboardTable("⭐ Prestige", top("prestige"), "prestige", "prestige"),
-        renderLeaderboardTable("💰 Total money earned", top("totalEarned"), "money", "totalEarned"),
-        renderLeaderboardTable("💎 Total gems earned", top("totalGemsEarned"), "gems", "totalGemsEarned")
-      ].join('<div style="height:12px"></div>');
-      status.textContent = `Showing up to 10 players per ranking (${rows.length} account${rows.length === 1 ? "" : "s"} with leaderboard data).`;
-    } catch (e) {
-      console.warn("Leaderboard load failed:", e);
-      const localNick = ((state.profile && state.profile.nickname) || "Anonymous").trim().slice(0, 20) || "Anonymous";
-      const localRows = [{ uid: currentUid || "local", leaderboard: { nickname: localNick, prestige: Number(state.prestige)||0, totalEarned: Number(state.stats?.totalEarned)||0, totalGemsEarned: Number(state.stats?.totalGemsEarned)||0 } }];
-      list.innerHTML = [
-        renderLeaderboardTable("⭐ Prestige", localRows, "prestige", "prestige"),
-        renderLeaderboardTable("💰 Total money earned", localRows, "money", "totalEarned"),
-        renderLeaderboardTable("💎 Total gems earned", localRows, "gems", "totalGemsEarned")
-      ].join('<div style="height:12px"></div>');
-      status.textContent = "Global leaderboard data could not be read. Showing your local score instead — check Firestore read rules.";
-    }
+async function loadLeaderboards() {
+  const list = document.getElementById("leaderboardList");
+  const status = document.getElementById("leaderboardStatus");
+
+  if (!list || !status) return;
+
+  if (!cloudReady || !cloudUser) {
+    list.innerHTML = `<div class="leaderboard-status">🔒 Sign in to view the global leaderboards.</div>`;
+    status.textContent = "";
+    return;
   }
 
-  window.loadLeaderboards = loadLeaderboards;
+  status.textContent = "Loading…";
+
+  try {
+    const snap = await cloudDb.collection("leaderboards").get();
+    const rows = [];
+
+    snap.forEach(doc => {
+      const data = doc.data() || {};
+
+      rows.push({
+        uid: doc.id,
+        leaderboard: {
+          nickname: data.nickname || "Anonymous",
+          prestige: Number(data.prestige) || 0,
+          totalEarned: Number(data.totalEarned) || 0,
+          totalGemsEarned: Number(data.totalGemsEarned) || 0
+        }
+      });
+    });
+
+    const top = (field) =>
+      rows
+        .slice()
+        .sort((a, b) =>
+          (Number(b.leaderboard[field]) || 0) -
+          (Number(a.leaderboard[field]) || 0)
+        )
+        .slice(0, 10);
+
+    list.innerHTML = [
+      renderLeaderboardTable(
+        "⭐ Prestige",
+        top("prestige"),
+        "prestige",
+        "prestige"
+      ),
+      renderLeaderboardTable(
+        "💰 Total money earned",
+        top("totalEarned"),
+        "money",
+        "totalEarned"
+      ),
+      renderLeaderboardTable(
+        "💎 Total gems earned",
+        top("totalGemsEarned"),
+        "gems",
+        "totalGemsEarned"
+      )
+    ].join('<div style="height:12px"></div>');
+
+    status.textContent =
+      `Showing up to 10 players per ranking (${rows.length} account${rows.length === 1 ? "" : "s"} with leaderboard data).`;
+
+  } catch (e) {
+    console.warn("Leaderboard load failed:", e);
+
+    list.innerHTML =
+      `<div class="leaderboard-status">❌ Could not load global leaderboards.</div>`;
+
+    status.textContent =
+      "Check your Firestore rules and leaderboard collection.";
+  }
+}
+
+window.loadLeaderboards = loadLeaderboards;
 
   function loadState() {
     const raw = localStorage.getItem(SAVE_KEY);
