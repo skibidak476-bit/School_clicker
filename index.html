@@ -2224,9 +2224,9 @@ body{
     const today = getDailyKey();
     const claimed = state.lastLoginChestClaim === today;
     btn.disabled = claimed;
-    btn.textContent = claimed ? "✅ Claimed today" : "🎁 Claim 15 💎";
+    btn.textContent = claimed ? "✅ Claimed today" : "🎁 Claim 100 💎";
     status.textContent = claimed
-      ? "Come back tomorrow for another 15 💎."
+      ? "Come back tomorrow for another 100 💎."
       : "Your daily reward is ready!";
   }
 
@@ -2243,12 +2243,12 @@ body{
       return;
     }
 
-    addGems(15);
+    addGems(100);
     state.lastLoginChestClaim = today;
     saveState();
     update();
     updateLoginChestUI();
-    showMessage("🎁 Daily Login Chest opened! +15 💎");
+    showMessage("🎁 Daily Login Chest opened! +100 💎");
   }
 
   // ===== Cloud sync (Firebase) =====
@@ -3028,10 +3028,13 @@ function currentGoal() {
       <button class="gembtn" onclick="buyTimeSkip(300,7)">5 min skip - 7💎</button>
       <button class="gembtn" onclick="buyTimeSkip(600,12)">10 min skip - 12💎</button>
       <button class="gembtn" onclick="buyTimeSkip(1800,20)">30 min skip - 20💎</button>
+      <button class="gembtn" onclick="buyTimeSkip(86400,1000)">1 day skip - 1000💎</button
       <hr>
       ${cashBoost ? `<div class="boost-item">💰 Cash boost x${fmtMult(cashBoost.mult)} active · ${fmtBoostTime(cashLeft * 1000)} remaining</div>` : ""}
       <button class="gembtn" onclick="buyBoost(2,180,10)">2x Cash 3 min - 10💎</button>
       <button class="gembtn" onclick="buyBoost(3,120,15)">3x Cash 2 min - 15💎</button>
+      <button class="gembtn" onclick="buyBoost(2,86400,1000)">2x Cash 3 min - 1000💎</button>
+      <button class="gembtn" onclick="buyBoost(3,86400,1500)">3x Cash 2 min - 1500💎</button>
       <hr>
       ${gemLuckActive ? `<div class="boost-item">🍀 Gem Luck boost x${fmtMult(state.gemLuckBoost.mult)} active · ${fmtBoostTime(gemLuckLeft * 1000)} remaining</div>` : ""}
       <button class="gembtn" onclick="buyGemLuck(10,180,20)">10x Gem Luck 3 min - 20💎</button>
@@ -3264,8 +3267,8 @@ const prevNeeded = worldId - 1;
           state.gluons = Math.round((state.gluons + 1) * 100) / 100;
           gluonsFound++;
         } else {
-          addGems(5);
-          state.stats.gemsFound += 5;
+          addGems(1);
+          state.stats.gemsFound += 1;
           gemsFound++;
         }
       }
@@ -3286,17 +3289,17 @@ const prevNeeded = worldId - 1;
 
     const partyChance = hasPartyBonus() ? (1 / 8000) : (1 / 10000);
     if (Math.random() < partyChance) {
-      addGems(3);
+      addGems(5);
       state.stats.parties += 1;
       const r = Math.random();
       if (r < 0.5) {
-        showMessage("🎉 Student party! +3 💎");
-      } else if (r < 0.8) {
-        addGems(2);
         showMessage("🎉 Student party! +5 💎");
+      } else if (r < 0.8) {
+        addGems(10);
+        showMessage("🎉 Student party! +15 💎");
       } else {
-        addGems(9);
-        showMessage("🎉 Legendary party! +12 💎");
+        addGems(20);
+        showMessage("🎉 Legendary party! +25 💎");
       }
     }
 
