@@ -3030,11 +3030,12 @@ function currentGoal() {
       <button class="gembtn" onclick="buyTimeSkip(1800,20)">30 min skip - 20💎</button>
       <button class="gembtn" onclick="buyTimeSkip(86400,1000)">1 day skip - 1000💎</button
       <hr>
+      <br>
       ${cashBoost ? `<div class="boost-item">💰 Cash boost x${fmtMult(cashBoost.mult)} active · ${fmtBoostTime(cashLeft * 1000)} remaining</div>` : ""}
       <button class="gembtn" onclick="buyBoost(2,180,10)">2x Cash 3 min - 10💎</button>
       <button class="gembtn" onclick="buyBoost(3,120,15)">3x Cash 2 min - 15💎</button>
-      <button class="gembtn" onclick="buyBoost(2,86400,1000)">2x Cash 3 min - 1000💎</button>
-      <button class="gembtn" onclick="buyBoost(3,86400,1500)">3x Cash 2 min - 1500💎</button>
+      <button class="gembtn" onclick="buyBoost(2,86400,1000)">2x Cash 1 day - 1000💎</button>
+      <button class="gembtn" onclick="buyBoost(3,86400,1500)">3x Cash 1 day - 1500💎</button>
       <hr>
       ${gemLuckActive ? `<div class="boost-item">🍀 Gem Luck boost x${fmtMult(state.gemLuckBoost.mult)} active · ${fmtBoostTime(gemLuckLeft * 1000)} remaining</div>` : ""}
       <button class="gembtn" onclick="buyGemLuck(10,180,20)">10x Gem Luck 3 min - 20💎</button>
